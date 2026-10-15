@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S4A Countdown Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,640&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #10110e;
+      --ink: #f4f0e6;
+      --muted: #9a9386;
+      --faint: #6d675c;
+      --line: rgba(244, 240, 230, 0.14);
+      --lime: #d6f25c;
+      --lime-dim: rgba(214, 242, 92, 0.16);
+      --coral: #ff6a45;
+      --coral-dim: rgba(255, 106, 69, 0.14);
+      --card: #191a15;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      --sans: "Outfit", "Segoe UI", sans-serif;
+      --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      overflow-x: clip;
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 420px at 0% -10%, rgba(214, 242, 92, 0.08), transparent 55%),
+        radial-gradient(720px 380px at 100% 0%, rgba(255, 106, 69, 0.07), transparent 50%),
+        var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+    .wrap { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--lime);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    h1, h2, .num { font-family: var(--serif); font-weight: 560; letter-spacing: -0.03em; }
+    h1 { margin: 0; font-size: clamp(42px, 6vw, 68px); line-height: 0.92; }
+    .lede { max-width: 46ch; margin: 14px 0 0; color: var(--muted); font-size: 16px; }
+
+    .mast {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.75fr);
+      gap: 28px;
+      align-items: end;
+      padding: 36px 0 8px;
+    }
+    .hero-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px 22px 18px;
+      box-shadow: var(--shadow);
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hero-card .label {
+      margin: 0;
+      color: var(--coral);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .hero-card.live .label { color: var(--lime); }
+    .hero-card .when {
+      margin: 8px 0 0;
+      font-family: var(--serif);
+      font-size: clamp(64px, 8vw, 92px);
+      line-height: 0.84;
+      letter-spacing: -0.045em;
+    }
+    .hero-card .when small {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0;
+      color: var(--muted);
+    }
+    .hero-meta { display: flex; justify-content: space-between; gap: 16px; align-items: end; }
+    .hero-meta p { margin: 0; }
+    .hero-meta .count { color: var(--muted); font-size: 14px; }
+    .hero-meta .leader { font-weight: 600; }
+    .hero-meta .leader span { display: block; color: var(--muted); font-weight: 400; font-size: 14px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin: 28px 0 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .stat { padding: 16px 18px 16px 0; }
+    .stat + .stat { padding-left: 18px; border-left: 1px solid var(--line); }
+    .stat b {
+      display: block;
+      font-family: var(--serif);
+      font-size: clamp(28px, 3vw, 40px);
+      font-weight: 560;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat span { display: block; margin-top: 6px; color: var(--muted); font-size: 13px; }
+    .stat em { font-style: normal; color: var(--faint); }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      padding: 14px 0;
+      background: rgba(16, 17, 14, 0.9);
+      backdrop-filter: blur(14px);
+    }
+    .search {
+      flex: 1 1 220px;
+      min-width: 0;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 16px;
+    }
+    .search::placeholder { color: var(--faint); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip, .sort, .refresh, .retry, .linkish {
+      border: 1px solid var(--line);
+      background: transparent;
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--muted);
+    }
+    .chip[aria-pressed="true"] {
+      background: var(--ink);
+      color: #16160f;
+      border-color: var(--ink);
+      font-weight: 600;
+    }
+    .sort { border-radius: 999px; padding-right: 10px; }
+    .refresh { margin-left: auto; color: var(--ink); }
+    .refresh[disabled] { opacity: 0.5; cursor: progress; }
+    .shown { color: var(--faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+    .banner, .error, .empty, .loading {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      margin: 8px 0 28px;
+    }
+    .error, .banner { border-color: rgba(255, 106, 69, 0.45); background: var(--coral-dim); }
+    .error h2, .empty h2, .loading h2 { margin: 0 0 6px; font-size: 28px; }
+    .error p, .empty p, .loading p, .banner p { margin: 0; color: var(--ink); }
+    .retry, .linkish { display: inline-block; margin-top: 14px; color: var(--ink); text-decoration: none; }
+    .group { margin: 8px 0 22px; }
+    .group h2 {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin: 0;
+      padding: 18px 0 8px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .group h2 b { color: var(--ink); font-weight: 600; letter-spacing: 0.08em; }
+    .row {
+      width: 100%;
+      max-width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      border-top: 1px solid var(--line);
+      padding: 16px 0;
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr) auto;
+      gap: 8px 18px;
+      align-items: center;
+    }
+    .row:hover { background: rgba(255, 255, 255, 0.02); }
+    .day {
+      font-family: var(--serif);
+      font-size: 28px;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+    .day small {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .is-today .day { color: var(--coral); }
+    .is-live .day { color: var(--lime); }
+    .who { min-width: 0; }
+    .artist { font-weight: 600; font-size: 18px; }
+    .release {
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .dates { margin-top: 6px; color: #d4cdc0; font-size: 14px; overflow-wrap: anywhere; }
+    .total { text-align: right; font-variant-numeric: tabular-nums; }
+    .total b {
+      display: block;
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 560;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .total span {
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .meter {
+      grid-column: 2 / -1;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: repeat(15, minmax(0, 1fr));
+      gap: 3px;
+      height: 36px;
+      align-items: end;
+      overflow: hidden;
+    }
+    .meter i {
+      display: block;
+      min-width: 0;
+      height: var(--h);
+      min-height: 0;
+      border-radius: 2px 2px 0 0;
+      background: var(--lime);
+      opacity: 0.9;
+    }
+    .is-today .meter i { background: var(--coral); }
+    .meter i.empty { height: 3px; background: rgba(244, 240, 230, 0.12); opacity: 1; }
+    .panel {
+      border-top: 1px solid var(--line);
+      padding: 14px 0 18px 110px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px 18px;
+    }
+    .panel .field span {
+      display: block;
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .panel .field b { font-weight: 560; font-variant-numeric: tabular-nums; }
+    .weeks { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+    .week {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .week span { display: block; color: var(--faint); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .week b { font-variant-numeric: tabular-nums; }
+    .week.missing b { color: var(--faint); font-weight: 400; }
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 18px 0 42px;
+      color: var(--faint);
+      font-size: 13px;
+      border-top: 1px solid var(--line);
+    }
+    footer a { color: var(--muted); }
+    .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+    @media (max-width: 800px) {
+      .wrap { width: min(100% - 28px, 1120px); }
+      .mast, .stats { grid-template-columns: 1fr; }
+      .stat + .stat { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); }
+      .hero-card .when { font-size: 64px; }
+      .toolbar, .chips { min-width: 0; }
+      .row { grid-template-columns: 72px minmax(0, 1fr); }
+      .total { grid-column: 2; text-align: left; }
+      .meter { grid-column: 1 / -1; }
+      .panel { padding-left: 0; grid-template-columns: 1fr 1fr; }
+      .weeks { grid-template-columns: repeat(2, 1fr); }
+      .refresh { margin-left: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="mast">
+      <div>
+        <p class="kicker">S4A</p>
+        <h1>Countdown Tracker</h1>
+        <p class="lede">Live from the Daily Running S4A Countdown Tracker. Release Date is the day being counted down. Week 1–Week 15 and Total are new presaves.</p>
+      </div>
+      <section class="hero-card" id="hero" aria-live="polite">
+        <p class="label">Loading</p>
+        <p class="when">…<small>Reading the sheet</small></p>
+      </section>
+    </header>
+
+    <section class="stats" id="stats" aria-label="Tracker totals"></section>
+
+    <div class="toolbar">
+      <label class="sr" for="q">Search artist or release</label>
+      <input class="search" id="q" type="search" placeholder="Search artist or release" autocomplete="off">
+      <div class="chips" role="group" aria-label="Filter releases">
+        <button class="chip" type="button" data-filter="clock" aria-pressed="true">On the clock</button>
+        <button class="chip" type="button" data-filter="today">Release day</button>
+        <button class="chip" type="button" data-filter="undated">No date</button>
+        <button class="chip" type="button" data-filter="released">Released</button>
+        <button class="chip" type="button" data-filter="all">All</button>
+      </div>
+      <label class="sr" for="sort">Sort</label>
+      <select class="sort" id="sort">
+        <option value="soonest">Soonest</option>
+        <option value="latest">Latest release</option>
+        <option value="total">Highest Total</option>
+        <option value="artist">Artist</option>
+      </select>
+      <span class="shown" id="shown"></span>
+      <button class="refresh" id="refresh" type="button">Refresh</button>
+    </div>
+
+    <p class="sr" id="live" aria-live="polite"></p>
+    <div id="banner"></div>
+    <main id="stage">
+      <div class="loading">
+        <h2>Loading the tracker</h2>
+        <p>Fetching Daily Running S4A Countdown Tracker.</p>
+      </div>
+    </main>
+    <footer>
+      <span id="stamp">Waiting for the sheet.</span>
+      <a href="https://docs.google.com/spreadsheets/d/1EPC0_zZqxSOaLFU2AYdLIFswK5CtH7h_APms0nGVZfw/edit?usp=sharing">Open the sheet</a>
+    </footer>
+  </div>
+  <noscript>
+    <p>This tracker needs JavaScript to load the Google Sheet.</p>
+  </noscript>
+
+  <script>
+    const SHEET_ID = "1EPC0_zZqxSOaLFU2AYdLIFswK5CtH7h_APms0nGVZfw";
+    const SHEET_NAME = "Daily Running S4A Countdown Tracker";
+    const REFRESH_MS = 5 * 60 * 1000;
+
+    const state = {
+      rows: [],
+      columns: [],
+      loadedAt: null,
+      filter: "clock",
+      sort: "soonest",
+      query: "",
+      open: new Set(),
+      loading: false,
+      error: null,
+      banner: ""
+    };
+
+    const heroEl = document.getElementById("hero");
+    const statsEl = document.getElementById("stats");
+    const stageEl = document.getElementById("stage");
+    const bannerEl = document.getElementById("banner");
+    const shownEl = document.getElementById("shown");
+    const stampEl = document.getElementById("stamp");
+    const liveEl = document.getElementById("live");
+    const refreshBtn = document.getElementById("refresh");
+    const qEl = document.getElementById("q");
+    const sortEl = document.getElementById("sort");
+
+    function esc(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+
+    function todayISO() {
+      const now = new Date();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return now.getFullYear() + "-" + m + "-" + d;
+    }
+
+    function dayDiff(fromISO, toISO) {
+      const a = fromISO.split("-").map(Number);
+      const b = toISO.split("-").map(Number);
+      const utcA = Date.UTC(a[0], a[1] - 1, a[2]);
+      const utcB = Date.UTC(b[0], b[1] - 1, b[2]);
+      return Math.round((utcB - utcA) / 86400000);
+    }
+
+    function fmtNum(value) {
+      if (value == null || Number.isNaN(value)) return "—";
+      return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "—";
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric"
+      });
+    }
+
+    function fmtDateShort(iso) {
+      if (!iso) return "—";
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+
+    function fmtTime(date) {
+      return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    }
+
+    function parseDate(cell) {
+      if (!cell || cell.v == null || cell.v === "") return null;
+      if (typeof cell.f === "string" && /^\d{4}-\d{2}-\d{2}/.test(cell.f)) return cell.f.slice(0, 10);
+      const match = String(cell.v).match(/Date\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if (!match) return null;
+      const y = Number(match[1]);
+      const m = String(Number(match[2]) + 1).padStart(2, "0");
+      const d = String(Number(match[3])).padStart(2, "0");
+      return y + "-" + m + "-" + d;
+    }
+
+    function parseNumber(cell) {
+      if (!cell || cell.v == null || cell.v === "") return null;
+      const n = Number(cell.v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function parseText(cell) {
+      if (!cell || cell.v == null) return "";
+      return String(cell.v).trim();
+    }
+
+    function loadSheet() {
+      const handler = "s4a_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const script = document.createElement("script");
+        const timer = setTimeout(() => finish(() => reject(new Error(
+          "The Daily Running S4A Countdown Tracker did not respond. The sheet has to be shared so anyone with the link can view it."
+        ))), 20000);
+
+        function finish(fn) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          script.remove();
+          try { delete window[handler]; } catch (e) { window[handler] = undefined; }
+          fn();
+        }
+
+        window[handler] = (response) => finish(() => {
+          if (!response || response.status !== "ok" || !response.table) {
+            const reason = response && response.errors && response.errors[0]
+              ? (response.errors[0].detailed_message || response.errors[0].message || response.errors[0].reason)
+              : "The sheet returned an error.";
+            reject(new Error(reason));
+            return;
+          }
+          resolve(response.table);
+        });
+
+        script.onerror = () => finish(() => reject(new Error(
+          "The tracker sheet could not be loaded. Check that anyone with the link can view it."
+        )));
+        script.src = "https://docs.google.com/spreadsheets/d/" + SHEET_ID
+          + "/gviz/tq?tqx=" + encodeURIComponent("out:json;responseHandler:" + handler)
+          + "&sheet=" + encodeURIComponent(SHEET_NAME)
+          + "&headers=1";
+        document.head.appendChild(script);
+      });
+    }
+
+    function parseTable(table) {
+      const cols = table.cols || [];
+      const labels = cols.map((col) => (col.label || "").trim());
+      const index = (name) => labels.findIndex((label) => label === name);
+      const artistI = index("Artist Name");
+      const releaseI = index("Release Name");
+      const startI = index("Countdown Start");
+      const endI = index("Countdown End");
+      const releaseDateI = index("Release Date");
+      const totalI = index("Total");
+      if (artistI < 0 || releaseI < 0 || totalI < 0) {
+        throw new Error("The sheet loaded, but Artist Name, Release Name, and Total were not in it.");
+      }
+      const weekCols = labels
+        .map((label, i) => ({ label, i, n: /^Week\s+(\d+)$/.exec(label) }))
+        .filter((col) => col.n)
+        .sort((a, b) => Number(a.n[1]) - Number(b.n[1]));
+
+      const today = todayISO();
+      const rows = (table.rows || []).map((row) => {
+        const cells = row.c || [];
+        const artist = parseText(cells[artistI]);
+        const release = parseText(cells[releaseI]);
+        if (!artist && !release) return null;
+        const start = startI >= 0 ? parseDate(cells[startI]) : null;
+        const end = endI >= 0 ? parseDate(cells[endI]) : null;
+        const releaseDate = releaseDateI >= 0 ? parseDate(cells[releaseDateI]) : null;
+        const total = parseNumber(cells[totalI]);
+        const weeks = weekCols.map((col) => ({
+          label: col.label,
+          value: parseNumber(cells[col.i])
+        }));
+        const target = releaseDate || end;
+        let status = "undated";
+        if (target) {
+          const days = dayDiff(today, target);
+          if (days > 0) status = start && dayDiff(today, start) > 0 ? "upcoming" : "live";
+          else if (days === 0) status = "today";
+          else status = "released";
+        }
+        return {
+          artist, release, start, end, releaseDate, total, weeks, status, target,
+          key: [artist, release, start || "", end || "", releaseDate || ""].join("\u001f")
+        };
+      }).filter(Boolean);
+
+      return { rows, weekCols };
+    }
+
+    function matches(row) {
+      if (state.filter === "clock" && row.status !== "today" && row.status !== "live" && row.status !== "upcoming") return false;
+      if (state.filter === "today" && row.status !== "today") return false;
+      if (state.filter === "undated" && row.status !== "undated") return false;
+      if (state.filter === "released" && row.status !== "released") return false;
+      if (!state.query) return true;
+      const hay = (row.artist + " " + row.release).toLowerCase();
+      return hay.includes(state.query);
+    }
+
+    function sorted(rows) {
+      const copy = rows.slice();
+      const sort = state.sort;
+      copy.sort((a, b) => {
+        if (sort === "total") return (b.total || 0) - (a.total || 0) || a.artist.localeCompare(b.artist);
+        if (sort === "artist") return a.artist.localeCompare(b.artist) || a.release.localeCompare(b.release);
+        const dir = sort === "latest" ? -1 : 1;
+        const at = a.target || (dir === 1 ? "9999-99-99" : "0000-00-00");
+        const bt = b.target || (dir === 1 ? "9999-99-99" : "0000-00-00");
+        if (at !== bt) return at < bt ? -dir : dir;
+        return (b.total || 0) - (a.total || 0);
+      });
+      return copy;
+    }
+
+    function meterHTML(row) {
+      const values = row.weeks.map((week) => week.value);
+      const max = values.reduce((m, v) => (v != null && v > m ? v : m), 0);
+      return '<span class="meter" aria-hidden="true">' + row.weeks.map((week) => {
+        if (week.value == null) return '<i class="empty"></i>';
+        const pct = max > 0 ? Math.max(12, Math.round((week.value / max) * 100)) : 12;
+        const title = esc(week.label + ": " + fmtNum(week.value));
+        return '<i style="--h:' + pct + '%" title="' + title + '"></i>';
+      }).join("") + "</span>";
+    }
+
+    function dayHTML(row) {
+      const today = todayISO();
+      if (row.status === "today") return '<div class="day">Today<small>Release</small></div>';
+      if (row.status === "undated") return '<div class="day">—<small>No date</small></div>';
+      if (!row.target) return '<div class="day">—<small></small></div>';
+      const days = dayDiff(today, row.target);
+      if (days > 0) {
+        return '<div class="day">' + days + "<small>" + (days === 1 ? "day" : "days") + "</small></div>";
+      }
+      return '<div class="day">' + esc(fmtDateShort(row.target)) + "<small>Released</small></div>";
+    }
+
+    function dateLine(row) {
+      const parts = [];
+      if (row.start) parts.push("Countdown Start " + fmtDate(row.start));
+      if (row.end) parts.push("Countdown End " + fmtDate(row.end));
+      if (row.releaseDate) parts.push("Release Date " + fmtDate(row.releaseDate));
+      if (!parts.length) parts.push("No Countdown End or Release Date");
+      return parts.join(" · ");
+    }
+
+    function detailHTML(row, panelId) {
+      const facts = [
+        ["Countdown Start", fmtDate(row.start)],
+        ["Countdown End", fmtDate(row.end)],
+        ["Release Date", fmtDate(row.releaseDate)],
+        ["Total", fmtNum(row.total)]
+      ];
+      const weeks = row.weeks.map((week) => {
+        const missing = week.value == null ? " missing" : "";
+        return '<div class="week' + missing + '"><span>' + esc(week.label) + "</span><b>" + fmtNum(week.value) + "</b></div>";
+      }).join("");
+      return '<div class="panel" id="' + panelId + '">'
+        + facts.map(([label, value]) => '<div class="field"><span>' + esc(label) + "</span><b>" + esc(value) + "</b></div>").join("")
+        + '<div class="weeks">' + weeks + "</div></div>";
+    }
+
+    function renderHero(rows) {
+      const active = rows.filter((row) => row.status === "today" || row.status === "live" || row.status === "upcoming");
+      if (!active.length) {
+        heroEl.className = "hero-card";
+        heroEl.innerHTML = '<p class="label">Countdown</p><p class="when">None<small>No release date is still ahead</small></p>';
+        return;
+      }
+      const nearest = active.reduce((min, row) => (row.target < min ? row.target : min), active[0].target);
+      const group = active.filter((row) => row.target === nearest);
+      const leader = group.slice().sort((a, b) => (b.total || 0) - (a.total || 0))[0];
+      const days = dayDiff(todayISO(), nearest);
+      const todayish = days === 0;
+      heroEl.className = "hero-card" + (todayish ? "" : " live");
+      const when = todayish
+        ? "Today"
+        : String(days);
+      const unit = todayish
+        ? fmtDate(nearest)
+        : (days === 1 ? "day until release" : "days until release");
+      const noun = group.length === 1 ? "release" : "releases";
+      heroEl.innerHTML = '<p class="label">' + (todayish ? "Release day" : "Next release") + "</p>"
+        + '<p class="when">' + esc(when) + "<small>" + esc(unit) + "</small></p>"
+        + '<div class="hero-meta"><p class="count">' + group.length + " " + noun + "</p>"
+        + '<p class="leader">' + esc(leader.artist) + "<span>" + esc(leader.release) + " · " + fmtNum(leader.total) + " Total</span></p></div>";
+    }
+
+    function renderStats(rows) {
+      const clock = rows.filter((row) => row.status === "today" || row.status === "live" || row.status === "upcoming");
+      const today = rows.filter((row) => row.status === "today").length;
+      const undated = rows.filter((row) => row.status === "undated").length;
+      const released = rows.filter((row) => row.status === "released").length;
+      const total = clock.reduce((sum, row) => sum + (row.total || 0), 0);
+      const items = [
+        [fmtNum(clock.length), "On the clock"],
+        [fmtNum(today), "Release day"],
+        [fmtNum(total), "Total <em>on the clock</em>"],
+        [fmtNum(released), "Released <em>" + fmtNum(undated) + " with no date</em>"]
+      ];
+      statsEl.innerHTML = items.map(([n, label]) => "<div class=\"stat\"><b>" + n + "</b><span>" + label + "</span></div>").join("");
+    }
+
+    function renderStage() {
+      const visible = sorted(state.rows.filter(matches));
+      shownEl.textContent = visible.length + (visible.length === 1 ? " release" : " releases");
+      if (!state.rows.length) {
+        stageEl.innerHTML = '<div class="empty"><h2>No releases in the sheet</h2><p>Daily Running S4A Countdown Tracker loaded, and it has no rows yet.</p></div>';
+        return;
+      }
+      if (!visible.length) {
+        const hint = state.query ? "Nothing matches “" + esc(state.query) + "”." : "Nothing in this view.";
+        stageEl.innerHTML = '<div class="empty"><h2>No releases</h2><p>' + hint + "</p></div>";
+        return;
+      }
+
+      const grouped = state.sort === "soonest" || state.sort === "latest";
+      let html = "";
+      let last = null;
+      visible.forEach((row, index) => {
+        const bucket = grouped ? (row.target || "undated") : "flat";
+        if (bucket !== last) {
+          if (last !== null) html += "</section>";
+          last = bucket;
+          if (grouped) {
+            const count = visible.filter((item) => (item.target || "undated") === bucket).length;
+            let title = "No Release Date";
+            let aside = count + (count === 1 ? " release" : " releases");
+            if (row.target) {
+              const days = dayDiff(todayISO(), row.target);
+              title = fmtDate(row.target);
+              aside = (days === 0 ? "Release day" : days > 0 ? days + (days === 1 ? " day" : " days") : "Released")
+                + " · " + count;
+            }
+            html += '<section class="group"><h2><b>' + esc(title) + "</b><span>" + esc(aside) + "</span></h2>";
+          } else {
+            html += '<section class="group">';
+          }
+        }
+        const panelId = "panel-" + index;
+        const open = state.open.has(row.key);
+        const cls = "row" + (row.status === "today" ? " is-today" : row.status === "live" || row.status === "upcoming" ? " is-live" : "");
+        html += '<article>'
+          + '<button class="' + cls + '" type="button" aria-expanded="' + open + '" aria-controls="' + panelId + '" data-key="' + esc(row.key) + '">'
+          + dayHTML(row)
+          + '<div class="who"><div class="artist">' + esc(row.artist) + '</div><div class="release">' + esc(row.release) + '</div><div class="dates">' + esc(dateLine(row)) + "</div></div>"
+          + '<div class="total"><b>' + fmtNum(row.total) + "</b><span>Total</span></div>"
+          + meterHTML(row)
+          + "</button>"
+          + (open ? detailHTML(row, panelId) : "")
+          + "</article>";
+      });
+      html += "</section>";
+      stageEl.innerHTML = html;
+    }
+
+    function renderBanner() {
+      bannerEl.innerHTML = state.banner
+        ? '<div class="banner"><p>' + esc(state.banner) + "</p></div>"
+        : "";
+    }
+
+    function renderError(message) {
+      heroEl.className = "hero-card";
+      heroEl.innerHTML = '<p class="label">Sheet unavailable</p><p class="when">—<small>Could not load</small></p>';
+      statsEl.innerHTML = "";
+      shownEl.textContent = "";
+      stageEl.innerHTML = '<div class="error"><h2>The tracker did not load</h2><p>'
+        + esc(message)
+        + '</p><button class="retry" type="button" id="retry">Try again</button></div>';
+      const retry = document.getElementById("retry");
+      if (retry) retry.addEventListener("click", () => refresh(true));
+    }
+
+    function renderAll() {
+      renderBanner();
+      renderHero(state.rows);
+      renderStats(state.rows);
+      renderStage();
+      stampEl.textContent = state.loadedAt
+        ? "Loaded " + fmtTime(state.loadedAt) + " · refreshes every 5 minutes"
+        : "Waiting for the sheet.";
+      document.body.dataset.ready = "1";
+    }
+
+    async function refresh(manual) {
+      if (state.loading) return;
+      state.loading = true;
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = "Refreshing";
+      try {
+        const table = await loadSheet();
+        const parsed = parseTable(table);
+        state.rows = parsed.rows;
+        state.columns = parsed.weekCols;
+        state.loadedAt = new Date();
+        state.error = null;
+        state.banner = "";
+        renderAll();
+        liveEl.textContent = "Loaded " + state.rows.length + " releases.";
+      } catch (error) {
+        const message = error && error.message ? error.message : "The sheet could not be loaded.";
+        state.error = message;
+        if (!state.rows.length) renderError(message);
+        else {
+          state.banner = "Refresh failed. Showing the last load. " + message;
+          renderBanner();
+        }
+        liveEl.textContent = message;
+      } finally {
+        state.loading = false;
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "Refresh";
+        if (manual) refreshBtn.focus();
+      }
+    }
+
+    document.querySelectorAll(".chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        state.filter = chip.dataset.filter;
+        document.querySelectorAll(".chip").forEach((btn) => {
+          btn.setAttribute("aria-pressed", btn === chip ? "true" : "false");
+        });
+        if (state.rows.length) renderStage();
+      });
+    });
+
+    qEl.addEventListener("input", () => {
+      state.query = qEl.value.trim().toLowerCase();
+      if (state.rows.length) renderStage();
+    });
+
+    sortEl.addEventListener("change", () => {
+      state.sort = sortEl.value;
+      if (state.rows.length) renderStage();
+    });
+
+    refreshBtn.addEventListener("click", () => refresh(true));
+
+    stageEl.addEventListener("click", (event) => {
+      const button = event.target.closest(".row");
+      if (!button) return;
+      const key = button.dataset.key;
+      if (state.open.has(key)) state.open.delete(key);
+      else state.open.add(key);
+      renderStage();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && state.loadedAt && Date.now() - state.loadedAt.getTime() > 60000) {
+        refresh(false);
+      }
+    });
+
+    refresh(false);
+    setInterval(() => refresh(false), REFRESH_MS);
+  </script>
+</body>
+</html>
